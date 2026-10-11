@@ -3302,7 +3302,7 @@
                 if (checkError) throw checkError;
 
                 if (existingProfiles && existingProfiles.length > 0) {
-                    showCustomAlert("Handle Taken", `The handle "@${handle}" is already taken by another user, bro! Please choose a different one.`);
+                    showCustomAlert("Handle Taken", `The handle "${handle}" is already taken by another user, bro! Please choose a different one.`);
                     btn.innerText = "Save changes";
                     return;
                 }
