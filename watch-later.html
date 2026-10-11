@@ -1,0 +1,3011 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Later - YawaFlix</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <style>
+        /* Slim rounded gray scrollbar (matching the YawaFlix reference style). */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #414141 #101010;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #101010;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #414141;
+            border: 2px solid #101010;
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+
+        body.light-mode * {
+            scrollbar-color: #c4c4c4 #f4f4f4;
+        }
+
+        body.light-mode ::-webkit-scrollbar-track {
+            background: #f4f4f4;
+        }
+
+        body.light-mode ::-webkit-scrollbar-thumb {
+            background: #c4c4c4;
+            border-color: #f4f4f4;
+        }
+
+        body.light-mode ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #0f0f0f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.light-mode {
+            background-color: #f9f9f9;
+            color: #0f0f0f;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #0f0f0f;
+            border-bottom: 1px solid #272727;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        body.light-mode nav {
+            background-color: #fff;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .left-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff0000;
+            text-decoration: none;
+        }
+
+        .search-bar {
+            display: flex;
+            flex: 1;
+            max-width: 600px;
+            margin: 0 40px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 20px 0 0 20px;
+            border: 1px solid #303030;
+            background-color: #121212;
+            color: #fff;
+            outline: none;
+        }
+
+        body.light-mode .search-bar input {
+            background-color: #fff;
+            color: #0f0f0f;
+            border: 1px solid #ccc;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            border-radius: 0 20px 20px 0;
+            border: 1px solid #303030;
+            border-left: none;
+            background-color: #222;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        body.light-mode .search-bar button {
+            background-color: #f0f0f0;
+            color: #0f0f0f;
+            border: 1px solid #ccc;
+            border-left: none;
+        }
+
+        .right-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        body.light-mode .icon-btn {
+            color: #0f0f0f;
+        }
+
+        .profile-pic {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #555;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-pic img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Profile & Notification Dropdowns */
+        .profile-dropdown {
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-15px) scale(0.95);
+            transform-origin: top right;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 300px;
+            background-color: #282828;
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+            pointer-events: none;
+        }
+
+        .profile-dropdown.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        body.light-mode .profile-dropdown {
+            background-color: #fff;
+            color: #0f0f0f;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .dropdown-header {
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            border-bottom: 1px solid #3f3f3f;
+        }
+
+        body.light-mode .dropdown-header {
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .dropdown-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #555;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dropdown-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .dropdown-user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .dropdown-name {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .dropdown-handle {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        body.light-mode .dropdown-handle {
+            color: #606060;
+        }
+
+        .dropdown-link-channel {
+            color: #3ea6ff;
+            font-size: 13px;
+            text-decoration: none;
+            margin-top: 5px;
+        }
+
+        .dropdown-section {
+            padding: 8px 0;
+            border-bottom: 1px solid #3f3f3f;
+        }
+
+        body.light-mode .dropdown-section {
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .dropdown-section:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #3f3f3f;
+        }
+
+        body.light-mode .dropdown-item:hover {
+            background-color: #f2f2f2;
+        }
+
+        /* Notifications Specific Styles */
+        .bell-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            color: #fff;
+        }
+
+        .bell-container:hover {
+            background-color: #272727;
+        }
+
+        body.light-mode .bell-container {
+            color: #0f0f0f;
+        }
+
+        body.light-mode .bell-container:hover {
+            background-color: #e5e5e5;
+        }
+
+        .notification-dropdown {
+            width: 380px;
+            right: 40px;
+        }
+
+        .notification-scroll-area {
+            max-height: 480px;
+            overflow-y: auto;
+            padding-bottom: 10px;
+        }
+
+        .notification-section-title {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 15px 20px 5px 20px;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .notification-item:hover {
+            background-color: #3f3f3f;
+        }
+
+        body.light-mode .notification-item:hover {
+            background-color: #f2f2f2;
+        }
+
+        .unread-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #3ea6ff;
+            border-radius: 50%;
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+        }
+
+        .notification-item.unread .unread-dot {
+            display: block;
+        }
+
+        .notif-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #555;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notif-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .notif-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .notif-text {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #fff;
+        }
+
+        body.light-mode .notif-text {
+            color: #0f0f0f;
+        }
+
+        .notif-time {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .notif-thumbnail {
+            width: 86px;
+            height: 48px;
+            border-radius: 4px;
+            background-color: #272727;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notif-thumbnail img, .notif-thumbnail video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .notif-options {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .notification-item:hover .notif-options {
+            opacity: 1;
+        }
+
+        /* Auth Container */
+        .auth-container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .auth-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .auth-desc {
+            font-size: 13px;
+            color: #aaa;
+            margin: 0;
+        }
+
+        body.light-mode .auth-desc {
+            color: #606060;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background-color: #121212;
+            color: #fff;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .auth-input {
+            background-color: #f9f9f9;
+            color: #0f0f0f;
+            border: 1px solid #ccc;
+        }
+
+        .auth-btn {
+            background-color: #3ea6ff;
+            color: #0f0f0f;
+            border: none;
+            padding: 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .auth-toggle-text {
+            font-size: 12px;
+            color: #3ea6ff;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 240px;
+            background-color: #0f0f0f;
+            padding: 15px 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        body.light-mode .sidebar {
+            background-color: #f9f9f9;
+        }
+
+        .sidebar-item {
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        body.light-mode .sidebar-item {
+            color: #0f0f0f;
+        }
+
+        .sidebar-item:hover {
+            background-color: #272727;
+        }
+
+        body.light-mode .sidebar-item:hover {
+            background-color: #e5e5e5;
+        }
+
+        .sidebar-item.active {
+            background-color: #272727;
+            font-weight: bold;
+        }
+
+        body.light-mode .sidebar-item.active {
+            background-color: #e5e5e5;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background-color: #272727;
+            margin: 10px 0;
+        }
+
+        body.light-mode .sidebar-divider {
+            background-color: #e5e5e5;
+        }
+
+        .sidebar-title {
+            padding: 5px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        body.light-mode .sidebar-title {
+            color: #0f0f0f;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 40px;
+            background-color: #0f0f0f;
+            transition: background-color 0.3s ease;
+        }
+
+        body.light-mode .content-area {
+            background-color: #f9f9f9;
+        }
+
+        .page-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 0 24px 0;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            align-items: start;
+            gap: 22px 16px;
+        }
+
+        .video-card {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .video-card-thumb {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            border-radius: 10px;
+            background: #1a1a1a;
+        }
+
+        .video-card-thumb img,
+        .video-card-thumb video {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-private-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 2;
+            padding: 4px 7px;
+            border-radius: 5px;
+            background: #b3261e;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            pointer-events: none;
+        }
+
+        .video-card-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .video-card-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            overflow: hidden;
+            border-radius: 50%;
+            background: #555;
+            color: #fff;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .video-card-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-card-copy {
+            display: flex;
+            min-width: 0;
+            flex: 1;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .video-card-title {
+            display: -webkit-box;
+            overflow: hidden;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        body.light-mode .video-card-title { color: #111; }
+
+        .video-card-uploader,
+        .video-card-stats {
+            overflow: hidden;
+            color: #aaa;
+            font-size: 12px;
+            line-height: 1.35;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .video-card-uploader:hover { color: #fff; }
+        body.light-mode .video-card-uploader:hover { color: #111; }
+
+        .video-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 2px;
+        }
+
+        .video-card-action {
+            min-height: 30px;
+            padding: 5px 10px;
+            border: 0;
+            border-radius: 999px;
+            background: #272727;
+            color: #ddd;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .video-card-action:hover { background: #3a3a3a; }
+        .video-card-action.delete { color: #ff8a8a; }
+        .video-card-action.delete:hover { background: #431919; }
+        body.light-mode .video-card-action { background: #e8e8e8; color: #222; }
+        body.light-mode .video-card-action.delete { color: #b3261e; }
+@media (max-width: 1450px) {
+            .video-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .content-area { padding-left: 28px; padding-right: 28px; }
+        }
+
+        @media (max-width: 1150px) {
+            .video-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 850px) {
+            .video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+            .content-area { padding: 20px 16px; }
+        }
+
+        @media (max-width: 520px) {
+            .video-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: flex;
+            visibility: hidden;
+            opacity: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+
+        .modal-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: #1f1f1f;
+            color: #fff;
+            padding: 30px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+
+        body.light-mode .modal-content {
+            background-color: #fff;
+            color: #0f0f0f;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .upload-dropzone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #3f3f3f;
+            border-radius: 12px;
+            padding: 20px;
+            background-color: #121212;
+            gap: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        body.light-mode .upload-dropzone {
+            background-color: #f9f9f9;
+            border-color: #ccc;
+        }
+
+        .title-input,
+        .desc-input,
+        .select-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #3f3f3f;
+            background-color: #121212;
+            color: #fff;
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        body.light-mode .title-input,
+        body.light-mode .desc-input,
+        body.light-mode .select-input {
+            background-color: #f9f9f9;
+            color: #0f0f0f;
+            border: 1px solid #ccc;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #fff;
+            color: #0f0f0f;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        body.light-mode .btn {
+            background-color: #0f0f0f;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background-color: #272727;
+            color: #fff;
+        }
+
+        body.light-mode .btn-secondary {
+            background-color: #e5e5e5;
+            color: #0f0f0f;
+        }
+
+        /* Custom Centered Modal Overlay */
+        .custom-modal-overlay {
+            display: flex;
+            visibility: hidden;
+            opacity: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+
+        .custom-modal-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .custom-modal-content {
+            background-color: #1f1f1f;
+            color: #fff;
+            padding: 24px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 400px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.light-mode .custom-modal-content {
+            background-color: #fff;
+            color: #0f0f0f;
+        }
+
+        .custom-modal-overlay.show .custom-modal-content {
+            transform: scale(1);
+        }
+
+        .custom-modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .custom-modal-desc {
+            font-size: 14px;
+            color: #aaa;
+            margin: 0;
+        }
+
+        body.light-mode .custom-modal-desc {
+            color: #606060;
+        }
+
+        .custom-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 8px;
+        }
+            .search-bar {
+            position: relative;
+            z-index: 150;
+            min-width: 0;
+        }
+
+        .search-bar:focus-within { z-index: 1400; }
+
+        .search-input-wrap {
+            display: flex;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .search-input-wrap input { min-width: 0; }
+
+        .search-history-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            min-width: 0;
+            max-height: min(380px, calc(100vh - 110px));
+            overflow-x: hidden;
+            overflow-y: auto;
+            box-sizing: border-box;
+            padding: 8px;
+            background: #202020;
+            color: #f1f1f1;
+            border: 1px solid #353535;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .42);
+            z-index: 1500;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(5px);
+            transform-origin: top center;
+            transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+            scrollbar-width: thin;
+            scrollbar-color: #555 transparent;
+        }
+
+        .search-history-dropdown.show {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .search-history-dropdown::-webkit-scrollbar { width: 6px; }
+        .search-history-dropdown::-webkit-scrollbar-thumb {
+            background: #505050;
+            border-radius: 8px;
+        }
+
+        body.light-mode .search-history-dropdown {
+            background: #fff;
+            color: #181818;
+            border-color: #e4e4e4;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .15);
+            scrollbar-color: #c4c4c4 transparent;
+        }
+
+        body.light-mode .search-history-dropdown::-webkit-scrollbar-thumb { background: #c4c4c4; }
+
+        .search-history-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 34px;
+            padding: 0 8px 8px;
+            margin: 0 0 4px;
+            color: #aaa;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .01em;
+            border-bottom: 1px solid #333;
+        }
+
+        body.light-mode .search-history-heading {
+            color: #686868;
+            border-bottom-color: #eaeaea;
+        }
+
+        .search-history-clear {
+            flex-shrink: 0;
+            padding: 6px 4px;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: #a9c7f7;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color .15s ease, background .15s ease;
+        }
+
+        .search-history-clear:hover { color: #d5e5ff; background: #30343a; }
+        body.light-mode .search-history-clear { color: #1769c2; }
+        body.light-mode .search-history-clear:hover { color: #084f9e; background: #f1f5fa; }
+
+        .search-history-row {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            width: 100%;
+            min-width: 0;
+            min-height: 40px;
+            margin: 2px 0;
+            padding: 0 3px;
+            box-sizing: border-box;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            transition: background .13s ease;
+        }
+
+        .search-history-row:hover,
+        .search-history-row:focus-within { background: #2b2b2b; }
+        body.light-mode .search-history-row:hover,
+        body.light-mode .search-history-row:focus-within { background: #f3f5f7; }
+
+        /* The current query is an ordinary row, not a nested outlined pill. */
+        .search-history-search-row {
+            margin-top: 6px;
+            margin-bottom: 7px;
+        }
+
+        .search-history-search-row:hover,
+        .search-history-search-row:focus-within { background: #2b2b2b; }
+        body.light-mode .search-history-search-row:hover,
+        body.light-mode .search-history-search-row:focus-within { background: #f3f5f7; }
+
+        .search-history-divider {
+            height: 1px;
+            margin: 4px 8px 5px;
+            background: #333;
+        }
+
+        body.light-mode .search-history-divider { background: #e8e8e8; }
+
+        .search-history-pick {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            min-height: 38px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 9px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            font-size: 14px;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .search-history-pick:focus-visible {
+            box-shadow: inset 0 0 0 2px #3ea6ff;
+        }
+
+        .search-history-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #a3a3a3;
+        }
+
+        .search-history-icon svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.7;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .search-history-search-row .search-history-icon { color: #b0b0b0; }
+        body.light-mode .search-history-icon { color: #777; }
+        body.light-mode .search-history-search-row .search-history-icon { color: #555; }
+
+        .search-history-query {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .search-history-remove {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 2px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #a5a5a5;
+            font: inherit;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            opacity: .72;
+            transition: background .13s ease, color .13s ease, opacity .13s ease;
+        }
+
+        .search-history-row:hover .search-history-remove,
+        .search-history-row:focus-within .search-history-remove { opacity: 1; }
+        .search-history-remove:hover { background: #414141; color: #fff; }
+        body.light-mode .search-history-remove { color: #737373; }
+        body.light-mode .search-history-remove:hover { background: #e5e7eb; color: #111; }
+
+        .search-history-empty {
+            margin: 0;
+            padding: 18px 12px 20px;
+            color: #999;
+            font-size: 13px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        body.light-mode .search-history-empty { color: #606060; }
+
+        @media (max-width: 640px) {
+            .search-history-dropdown { top: calc(100% + 6px); border-radius: 10px; }
+            .search-history-heading { padding-left: 7px; padding-right: 7px; }
+            .search-history-pick { gap: 10px; padding-left: 7px; padding-right: 7px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .search-history-dropdown,
+            .search-history-row,
+            .search-history-clear,
+            .search-history-remove { transition: none; }
+        }
+
+
+        /* Keep search-history controls independent from the search submit button styling. */
+        .search-bar .search-history-clear,
+        .search-bar .search-history-pick,
+        .search-bar .search-history-remove {
+            border: 0;
+            border-left: 0;
+            box-shadow: none;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .search-bar .search-history-clear {
+            padding: 6px 4px;
+            border-radius: 5px;
+            background: transparent;
+            color: #a9c7f7;
+        }
+        body.light-mode .search-bar .search-history-clear { color: #1769c2; }
+
+        .search-bar .search-history-pick {
+            padding: 8px 9px;
+            border-radius: 7px;
+            background: transparent;
+            color: inherit;
+        }
+
+        .search-bar .search-history-remove {
+            padding: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #a5a5a5;
+        }
+        body.light-mode .search-bar .search-history-remove { color: #737373; }
+
+        .search-bar .search-history-clear:hover { background: #30343a; }
+        .search-bar .search-history-pick:hover { background: transparent; }
+        .search-bar .search-history-remove:hover { background: #414141; }
+        body.light-mode .search-bar .search-history-clear:hover { background: #f1f5fa; }
+        body.light-mode .search-bar .search-history-pick:hover { background: transparent; }
+        body.light-mode .search-bar .search-history-remove:hover { background: #e5e7eb; }
+
+
+        /* Centered, branded delete dialog */
+        .delete-confirm-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 20px;
+            background: rgba(0, 0, 0, .72);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity .18s ease, visibility .18s ease;
+        }
+
+        .delete-confirm-overlay.show { opacity: 1; visibility: visible; pointer-events: auto; }
+
+        .delete-confirm-dialog {
+            width: min(100%, 430px);
+            box-sizing: border-box;
+            padding: 28px;
+            border: 1px solid #383838;
+            border-radius: 19px;
+            background: #181818;
+            color: #f6f6f6;
+            box-shadow: 0 24px 80px rgba(0,0,0,.55);
+            transform: translateY(10px) scale(.97);
+            transition: transform .18s ease;
+        }
+
+        .delete-confirm-overlay.show .delete-confirm-dialog { transform: translateY(0) scale(1); }
+        body.light-mode .delete-confirm-dialog { background: #fff; color: #151515; border-color: #e3e3e3; }
+
+        .delete-confirm-icon {
+            display: grid;
+            place-items: center;
+            width: 54px;
+            height: 54px;
+            margin-bottom: 17px;
+            border-radius: 16px;
+            background: rgba(220,38,38,.14);
+            color: #ff6868;
+        }
+
+        .delete-confirm-title { margin: 0 0 10px; font-size: 21px; font-weight: 750; letter-spacing: -.02em; }
+        .delete-confirm-description { margin: 0; color: #b7b7b7; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+        body.light-mode .delete-confirm-description { color: #626262; }
+
+        .delete-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
+        .delete-confirm-btn { min-height: 42px; padding: 0 17px; border: 1px solid transparent; border-radius: 11px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s ease, transform .15s ease, opacity .15s ease; }
+        .delete-confirm-btn:active { transform: scale(.98); }
+        .delete-confirm-btn.cancel { border-color: #414141; background: #262626; color: #eee; }
+        .delete-confirm-btn.cancel:hover { background: #333; }
+        .delete-confirm-btn.danger { background: #dc3038; color: #fff; }
+        .delete-confirm-btn.danger:hover { background: #ef4444; }
+        .delete-confirm-btn:disabled { opacity: .6; cursor: wait; }
+        body.light-mode .delete-confirm-btn.cancel { border-color: #ddd; background: #f3f3f3; color: #222; }
+
+        .video-action-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            z-index: 4000;
+            max-width: calc(100vw - 32px);
+            padding: 12px 16px;
+            border: 1px solid #3b3b3b;
+            border-radius: 12px;
+            background: #202020;
+            color: #fff;
+            box-shadow: 0 8px 28px rgba(0,0,0,.35);
+            font-size: 13px;
+            line-height: 1.4;
+            transform: translate(-50%, 12px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+            pointer-events: none;
+        }
+        .video-action-toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+        .video-action-toast.error { border-color: #8b2626; }
+
+        @media (max-width: 520px) {
+            .delete-confirm-dialog { padding: 23px 20px; border-radius: 16px; }
+            .delete-confirm-actions { flex-direction: column-reverse; }
+            .delete-confirm-btn { width: 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .delete-confirm-overlay, .delete-confirm-dialog, .delete-confirm-btn, .video-action-toast { transition: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="left-nav">
+            <button class="icon-btn" onclick="toggleSidebar()">Menu</button>
+            <a href="index.html" class="logo">YawaFlix</a>
+        </div>
+        <div class="search-bar" id="search-form" role="search">
+            <div class="search-input-wrap">
+                <input type="text" id="search-input" placeholder="Search" autocomplete="off"
+                    aria-label="Search YawaFlix" aria-controls="search-history-dropdown" aria-expanded="false">
+            </div>
+            <button type="button" id="search-submit" onclick="executeSearch()">Search</button>
+            <div class="search-history-dropdown" id="search-history-dropdown" role="listbox"
+                aria-label="Recent searches" aria-hidden="true"></div>
+        </div>
+        <div class="right-nav">
+            <button class="icon-btn" onclick="openCompressModal()">Compress</button>
+            <button class="icon-btn" onclick="openUploadModal()">Upload</button>
+
+            <!-- Notification Bell Icon and Dropdown -->
+            <div class="bell-container" id="bell-button" onclick="toggleNotifications(event)">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path
+                        d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z">
+                    </path>
+                </svg>
+                <span id="notification-dot"
+                    style="display: none; position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; background-color: #3ea6ff; border-radius: 50%;"></span>
+            </div>
+
+            <!-- YouTube-style Notifications Dropdown -->
+            <div id="notification-dropdown" class="profile-dropdown notification-dropdown" onclick="event.stopPropagation()">
+                <div class="dropdown-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+                    <span style="font-size: 16px; font-weight: 500;">Notifications</span>
+                    <div style="display: flex; gap: 12px; font-size: 12px;">
+                        <span style="color: #3ea6ff; cursor: pointer;" onclick="markAllAsRead()">Mark all as read</span>
+                        <span style="color: #aaa; cursor: pointer;" onclick="clearAllNotifications()">Clear all</span>
+                    </div>
+                </div>
+
+                <div class="notification-scroll-area">
+                    <div class="notification-section-title">Channel Activity</div>
+                    <div id="activity-notifications-list"></div>
+                    <div class="notification-section-title">Subscriptions</div>
+                    <div id="sub-notifications-list"></div>
+                </div>
+            </div>
+
+            <div class="profile-pic" id="nav-profile-pic" onclick="toggleProfileMenu(event)"></div>
+
+            <div id="profile-dropdown" class="profile-dropdown" onclick="event.stopPropagation()">
+                <div id="logged-out-view">
+                    <div class="auth-container">
+                        <p class="auth-title" id="auth-heading">Sign in to YawaFlix</p>
+                        <p class="auth-desc">Sign in to like videos, comment, and subscribe.</p>
+                        <input type="email" id="auth-email" class="auth-input" placeholder="Email">
+                        <input type="password" id="auth-password" class="auth-input" placeholder="Password">
+                        <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
+                        <div class="auth-toggle-text" id="auth-toggle-link" onclick="toggleAuthMode()">Create account
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logged-in-view" style="display: none;">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar" id="dropdown-avatar-icon"></div>
+                        <div class="dropdown-user-info">
+                            <span class="dropdown-name" id="user-display-name"></span>
+                            <span class="dropdown-handle" id="user-display-handle"></span>
+                            <a href="channel.html" class="dropdown-link-channel">View your channel</a>
+                        </div>
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="dropdown-item" onclick="handleLogout()">Sign out</div>
+                    </div>
+                </div>
+
+                <div class="dropdown-section">
+                    <div class="dropdown-item" onclick="toggleTheme()">Appearance: <span id="theme-label">Dark
+                            theme</span></div>
+                    <div class="dropdown-item">Display language: English</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-layout">
+        <div class="sidebar" id="sidebar">
+            <a href="index.html" class="sidebar-item">Home</a>
+            <a href="watch-together.html" class="sidebar-item">Watch Together</a>
+            <a href="subscriptions.html" class="sidebar-item">Subscriptions</a>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-title">You</div>
+            <a href="channel.html" class="sidebar-item">Your channel</a>
+            <a href="history.html" class="sidebar-item">History</a>
+            <a href="watch-later.html" class="sidebar-item active">Watch Later</a>
+            <a href="liked-videos.html" class="sidebar-item">Liked Videos</a>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-title">Subscriptions</div>
+            <div id="sidebar-subscriptions-list"
+                style="display: flex; flex-direction: column; gap: 4px; padding: 0 5px;">
+                <span style="font-size: 12px; color: #aaa; padding: 5px 10px;"></span>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <h1 class="page-header">Watch Later</h1>
+            <div class="video-grid" id="watch-later-grid">
+                <!-- Saved videos load here -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Custom Alert / Message Modal -->
+    <div id="custom-alert-modal" class="custom-modal-overlay">
+        <div class="custom-modal-content" style="width: 380px;">
+            <p class="custom-modal-title" id="custom-alert-title">Notice</p>
+            <p class="custom-modal-desc" id="custom-alert-desc">Message goes here.</p>
+            <div class="custom-modal-actions">
+                <button class="btn" onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Branded centered delete confirmation -->
+    <div id="delete-confirm-modal" class="delete-confirm-overlay" aria-hidden="true"
+         onclick="if (event.target === this) closeDeleteConfirmModal()">
+        <section class="delete-confirm-dialog" role="alertdialog" aria-modal="true"
+                 aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-description"
+                 onclick="event.stopPropagation()">
+            <div class="delete-confirm-icon" aria-hidden="true">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path>
+                    <path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path>
+                </svg>
+            </div>
+            <h2 id="delete-confirm-title" class="delete-confirm-title">Delete this video?</h2>
+            <p id="delete-confirm-description" class="delete-confirm-description">This permanently removes the video and its stored file. This action cannot be undone.</p>
+            <div class="delete-confirm-actions">
+                <button type="button" class="delete-confirm-btn cancel" onclick="closeDeleteConfirmModal()">Cancel</button>
+                <button type="button" id="confirm-video-delete-btn" class="delete-confirm-btn danger" onclick="confirmDeleteVideo()">Delete video</button>
+            </div>
+        </section>
+    </div>
+    <div id="video-action-toast" class="video-action-toast" role="status" aria-live="polite"></div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Upload video</span>
+                <button class="close-btn" onclick="closeUploadModal()">X</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: #aaa;">Title</label>
+                <input type="text" id="upload-title" class="title-input"
+                    placeholder="Add a title that describes your video">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: #aaa;">Description</label>
+                <textarea id="upload-desc" class="desc-input" rows="3" placeholder="Add a description"></textarea>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: #aaa;">Thumbnail</label>
+                <div class="upload-dropzone" onclick="document.getElementById('upload-thumb-file').click()">
+                    <img id="upload-thumb-preview"
+                        style="max-height: 100px; border-radius: 6px; display: none; object-fit: cover;" alt="Preview">
+                    <span class="upload-text" id="upload-thumb-text">Click to upload thumbnail</span>
+                    <input type="file" id="upload-thumb-file" accept="image/*" onchange="previewUploadThumbnail(this)"
+                        style="display: none;">
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: #aaa;">Video File</label>
+                <div class="upload-dropzone" id="upload-dropzone-box" onclick="handleUploadDropzoneClick()">
+                    <div class="upload-icon-circle" id="upload-icon-circle">UPLOAD</div>
+                    <p class="upload-text" id="upload-status-text">Drag and drop video files to upload</p>
+                    <input type="file" id="upload-file" accept="video/*" onchange="handleUploadFileSelect(this)"
+                        style="display: none;">
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: #aaa;">Visibility</label>
+                <select id="upload-visibility" class="select-input">
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </select>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+                <button class="btn" id="upload-submit-btn" onclick="uploadVideo()">Publish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Sign-In Required Modal -->
+    <div id="auth-required-modal" class="custom-modal-overlay">
+        <div class="custom-modal-content">
+            <p class="custom-modal-title">Sign in required</p>
+            <p class="custom-modal-desc">You need to be signed in to upload videos, bro!</p>
+            <div class="custom-modal-actions">
+                <button class="btn btn-secondary" onclick="closeAuthRequiredModal()">Cancel</button>
+                <button class="btn" onclick="openAuthModalFromPrompt()">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Credential Popup for Sign In -->
+    <div id="auth-credential-modal" class="custom-modal-overlay">
+        <div class="custom-modal-content" style="width: 360px;">
+            <div class="modal-header" style="margin-bottom: 0;">
+                <span style="font-size: 16px;">Sign in to YawaFlix</span>
+                <button class="close-btn" onclick="closeAuthCredentialModal()">X</button>
+            </div>
+            <p class="custom-modal-desc" style="font-size: 12px;">Enter your email and password to continue uploading.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="email" id="modal-auth-email" class="auth-input" placeholder="Email">
+                <input type="password" id="modal-auth-password" class="auth-input" placeholder="Password">
+                <button class="auth-btn" id="modal-auth-submit-btn" onclick="handleModalAuth()">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compress Modal -->
+    <div id="compress-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Compress Video</span>
+                <button class="close-btn" onclick="closeCompressModal()">X</button>
+            </div>
+            <div class="upload-dropzone" id="compress-dropzone-area"
+                onclick="document.getElementById('compress-file-input').click()">
+                <div class="upload-icon-circle" id="compress-icon-circle">COMPRESS</div>
+                <p class="upload-text" id="compress-status-text">Drop your video here or select a file</p>
+                <div id="compress-preview-container"
+                    style="display: none; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+                    <video id="compressed-preview-video" controls
+                        style="width: 100%; max-height: 200px; border-radius: 8px; background: #000;"></video>
+                    <button class="btn btn-secondary" onclick="event.stopPropagation(); resetCompression()"
+                        style="font-size: 12px; padding: 6px 12px; margin-top: 5px;">Choose another video</button>
+                </div>
+                <div id="compress-progress-container"
+                    style="display: none; width: 80%; background-color: #333; border-radius: 4px; overflow: hidden; height: 8px; margin-top: 10px;">
+                    <div id="compress-progress-bar"
+                        style="width: 0%; height: 100%; background-color: #3ea6ff; transition: width 0.1s linear;">
+                    </div>
+                </div>
+                <input type="file" id="compress-file-input" accept="video/*" onchange="compressVideoFile(this)"
+                    style="display: none;">
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="closeCompressModal()">Close</button>
+                <div id="compress-action-buttons" style="display: none; gap: 10px;">
+                    <a id="download-compressed-btn" class="btn btn-secondary"
+                        download="compressed-video.webm">Download</a>
+                    <button class="btn" onclick="sendToUploadModal()">Upload to YawaFlix</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isSignUpMode = false;
+        let compressedBlob = null;
+        let isFileSelected = false;
+        let selectedUploadThumbnailFile = null;
+        const compressedFileName = 'compressed-video.webm';
+
+        // Polished search history dropdown: local to this browser and limited to 10 searches.
+        const SEARCH_HISTORY_KEY = 'yawaflix_search_history_v1';
+
+        function readSearchHistory() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+                return Array.isArray(saved)
+                    ? saved.filter(item => typeof item === 'string' && item.trim()).slice(0, 10)
+                    : [];
+            } catch (error) {
+                console.warn('Could not read search history:', error);
+                return [];
+            }
+        }
+
+        function saveSearchHistory(items) {
+            try {
+                localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(items.slice(0, 10)));
+            } catch (error) {
+                console.warn('Could not save search history:', error);
+            }
+        }
+
+        function rememberSearch(query) {
+            const cleanQuery = String(query || '').trim().replace(/\s+/g, ' ');
+            if (!cleanQuery) return;
+            const existing = readSearchHistory();
+            const updated = [
+                cleanQuery,
+                ...existing.filter(item => item.toLocaleLowerCase() !== cleanQuery.toLocaleLowerCase())
+            ].slice(0, 10);
+            saveSearchHistory(updated);
+        }
+
+        function hideSearchHistoryDropdown() {
+            const dropdown = document.getElementById('search-history-dropdown');
+            const input = document.getElementById('search-input');
+            if (dropdown) {
+                dropdown.classList.remove('show');
+                dropdown.setAttribute('aria-hidden', 'true');
+            }
+            if (input) input.setAttribute('aria-expanded', 'false');
+        }
+
+        function showSearchHistoryDropdown() {
+            const dropdown = document.getElementById('search-history-dropdown');
+            const input = document.getElementById('search-input');
+            if (!dropdown) return;
+            dropdown.classList.add('show');
+            dropdown.setAttribute('aria-hidden', 'false');
+            if (input) input.setAttribute('aria-expanded', 'true');
+        }
+
+        function renderSearchHistoryDropdown() {
+            const input = document.getElementById('search-input');
+            const dropdown = document.getElementById('search-history-dropdown');
+            if (!input || !dropdown) return;
+
+            const typedQuery = input.value.trim().replace(/\s+/g, ' ');
+            const historyItems = readSearchHistory();
+            const matchedItems = typedQuery
+                ? historyItems.filter(item => item.toLocaleLowerCase().includes(typedQuery.toLocaleLowerCase()))
+                : historyItems;
+
+            dropdown.innerHTML = '';
+
+            const heading = document.createElement('div');
+            heading.className = 'search-history-heading';
+            const headingText = document.createElement('span');
+            headingText.textContent = typedQuery ? 'Search suggestions' : 'Recent searches';
+            heading.appendChild(headingText);
+
+            if (historyItems.length) {
+                const clearButton = document.createElement('button');
+                clearButton.type = 'button';
+                clearButton.className = 'search-history-clear';
+                clearButton.textContent = 'Clear all';
+                clearButton.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    saveSearchHistory([]);
+                    renderSearchHistoryDropdown();
+                });
+                heading.appendChild(clearButton);
+            }
+            dropdown.appendChild(heading);
+
+            if (typedQuery) {
+                const searchRow = document.createElement('div');
+                searchRow.className = 'search-history-row search-history-search-row';
+
+                const searchButton = document.createElement('button');
+                searchButton.type = 'button';
+                searchButton.className = 'search-history-pick';
+
+                const searchIcon = document.createElement('span');
+                searchIcon.className = 'search-history-icon';
+                searchIcon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>';
+
+                const searchText = document.createElement('span');
+                searchText.className = 'search-history-query';
+                searchText.textContent = `Search for “${typedQuery}”`;
+                searchButton.append(searchIcon, searchText);
+                searchButton.addEventListener('click', () => executeSearch(typedQuery));
+                searchRow.appendChild(searchButton);
+                dropdown.appendChild(searchRow);
+
+                if (matchedItems.length) {
+                    const divider = document.createElement('div');
+                    divider.className = 'search-history-divider';
+                    divider.setAttribute('aria-hidden', 'true');
+                    dropdown.appendChild(divider);
+                }
+            }
+
+            if (!matchedItems.length) {
+                const empty = document.createElement('div');
+                empty.className = 'search-history-empty';
+                empty.textContent = typedQuery
+                    ? (historyItems.length ? 'No matching recent searches.' : 'No saved searches yet.')
+                    : 'Your recent searches will appear here.';
+                dropdown.appendChild(empty);
+            }
+
+            matchedItems.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'search-history-row';
+
+                const pickButton = document.createElement('button');
+                pickButton.type = 'button';
+                pickButton.className = 'search-history-pick';
+                pickButton.setAttribute('role', 'option');
+
+                const icon = document.createElement('span');
+                icon.className = 'search-history-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3.2 2"></path></svg>';
+
+                const label = document.createElement('span');
+                label.className = 'search-history-query';
+                label.textContent = item;
+                pickButton.append(icon, label);
+                pickButton.addEventListener('click', () => executeSearch(item));
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'search-history-remove';
+                removeButton.setAttribute('aria-label', `Remove ${item} from search history`);
+                removeButton.title = 'Remove from history';
+                removeButton.textContent = '×';
+                removeButton.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    saveSearchHistory(readSearchHistory().filter(saved => saved !== item));
+                    renderSearchHistoryDropdown();
+                });
+
+                row.append(pickButton, removeButton);
+                dropdown.appendChild(row);
+            });
+
+            showSearchHistoryDropdown();
+        }
+
+        // From the home page, submitted searches open the dedicated search results page.
+        function executeSearch(queryOverride) {
+            const input = document.getElementById('search-input');
+            if (typeof queryOverride === 'string' && input) input.value = queryOverride;
+            const query = input ? input.value.trim().replace(/\s+/g, ' ') : String(queryOverride || '').trim();
+            rememberSearch(query);
+            hideSearchHistoryDropdown();
+
+            const targetUrl = new URL('search.html', window.location.href);
+            if (query) targetUrl.searchParams.set('q', query);
+            else targetUrl.searchParams.delete('q');
+            window.location.href = targetUrl.toString();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            const searchDropdown = document.getElementById('search-history-dropdown');
+            if (!searchInput || !searchDropdown) return;
+
+            const queryFromUrl = new URLSearchParams(window.location.search).get('q');
+            if (queryFromUrl) searchInput.value = queryFromUrl;
+
+            searchInput.addEventListener('focus', renderSearchHistoryDropdown);
+            searchInput.addEventListener('input', renderSearchHistoryDropdown);
+            searchInput.addEventListener('keydown', event => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    executeSearch();
+                } else if (event.key === 'Escape') {
+                    hideSearchHistoryDropdown();
+                } else if (event.key === 'ArrowDown' && searchDropdown.classList.contains('show')) {
+                    const firstSuggestion = searchDropdown.querySelector('.search-history-pick');
+                    if (firstSuggestion) {
+                        event.preventDefault();
+                        firstSuggestion.focus();
+                    }
+                }
+            });
+
+            document.addEventListener('click', event => {
+                if (!event.target.closest('#search-form')) hideSearchHistoryDropdown();
+            });
+        });
+
+        function showCustomAlert(title, desc) {
+            closeUploadModal();
+            document.getElementById('custom-alert-title').innerText = title;
+            document.getElementById('custom-alert-desc').innerText = desc;
+            document.getElementById('custom-alert-modal').classList.add('show');
+        }
+
+        function closeCustomAlert() {
+            document.getElementById('custom-alert-modal').classList.remove('show');
+        }
+
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+            const label = document.getElementById('theme-label');
+            if (label) label.innerText = 'Light theme';
+        }
+
+        let currentLoggedInUserId = null;
+        let isAdminUser = false;
+        let videoPendingDelete = null;
+        let toastDismissTimer = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            supabaseClient.auth.onAuthStateChange((event, authSession) => {
+                // Defer follow-up queries out of the auth callback to avoid blocking auth events.
+                setTimeout(async () => {
+                    currentLoggedInUserId = authSession?.user?.id || null;
+                    await refreshCurrentUserRole(currentLoggedInUserId);
+                    if (authSession) {
+                        updateAuthUI(authSession.user);
+                        loadSidebarSubscriptions(authSession.user.id);
+                        loadNotifications(authSession.user.id);
+                        setupRealtimeNotifications(authSession.user.id);
+                    } else {
+                        isAdminUser = false;
+                        updateLoggedOutUI();
+                        document.getElementById('sidebar-subscriptions-list').innerHTML = '<span style="font-size: 12px; color: #aaa; padding: 5px 10px;">Sign in to see subscriptions</span>';
+                        if (realtimeSubscription) supabaseClient.removeChannel(realtimeSubscription);
+                    }
+                    await loadWatchLaterVideos();
+                }, 0);
+            });
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            currentLoggedInUserId = session?.user?.id || null;
+            await refreshCurrentUserRole(currentLoggedInUserId);
+            if (session) {
+                await updateAuthUI(session.user);
+                loadSidebarSubscriptions(session.user.id);
+                loadNotifications(session.user.id);
+                setupRealtimeNotifications(session.user.id);
+            } else {
+                updateLoggedOutUI();
+            }
+            await loadWatchLaterVideos();
+        });
+
+        async function loadNotifications(userId) {
+            const { data: notifs, error } = await supabaseClient
+                .from('notifications')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+
+            if (error || !notifs) return;
+
+            const activityList = document.getElementById('activity-notifications-list');
+            const subList = document.getElementById('sub-notifications-list');
+            if (!activityList || !subList) return;
+
+            activityList.innerHTML = '';
+            subList.innerHTML = '';
+
+            let hasUnread = false;
+            let activityCount = 0;
+            let subCount = 0;
+
+            const actorIds = [...new Set(notifs.map(n => n.actor_id).filter(Boolean))];
+            const videoIds = [...new Set(notifs.map(n => n.video_id).filter(Boolean))];
+
+            const { data: profiles } = await supabaseClient.from('profiles').select('id, username, avatar_url').in('id', actorIds);
+            const { data: videos } = await supabaseClient.from('videos').select('id, title, thumbnail_url, video_url').in('id', videoIds);
+
+            notifs.forEach(notif => {
+                if (!notif.is_read) hasUnread = true;
+
+                const actor = profiles?.find(p => p.id === notif.actor_id) || {};
+                const video = videos?.find(v => v.id === notif.video_id) || {};
+
+                const actorName = actor.username || 'User';
+                const avatar = actor.avatar_url
+                    ? `<img src="${actor.avatar_url}" style="width: 100%; height: 100%; object-fit: cover;">`
+                    : `<span style="font-size: 14px; font-weight: bold; color: #fff;">${actorName[0].toUpperCase()}</span>`;
+
+                let notifText = '';
+                let thumbnailHtml = '';
+
+                if (notif.type === 'subscribe') {
+                    notifText = `<strong>${actorName}</strong> subscribed to your channel.`;
+                } else if (notif.type === 'comment' || notif.type === 'comment_like' || notif.type === 'like_comment') {
+                    notifText = `<strong>${actorName}</strong> liked your comment.`;
+                } else if (notif.type === 'reply') {
+                    notifText = `<strong>${actorName}</strong> replied to your comment.`;
+                } else if (notif.type === 'new_video' || notif.type === 'upload') {
+                    notifText = `<strong>${actorName}</strong> uploaded: ${video.title || 'a new video'}`;
+                    if (video.thumbnail_url) {
+                        thumbnailHtml = `<img src="${video.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+                    } else if (video.video_url) {
+                        thumbnailHtml = `<video src="${video.video_url}" style="width: 100%; height: 100%; object-fit: cover; display: block;" preload="metadata"></video>`;
+                    } else {
+                        thumbnailHtml = `<div style="width: 100%; height: 100%; background: #272727;"></div>`;
+                    }
+                }
+
+                const targetUrl = notif.video_id ? `watch.html?id=${notif.video_id}` : `channel.html?id=${notif.actor_id}`;
+
+                const itemHtml = `
+                    <div id="notif-item-${notif.id}" class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="handleNotificationClick('${notif.id}', '${targetUrl}')">
+                        <div class="unread-dot"></div>
+                        <div class="notif-avatar">${avatar}</div>
+                        <div class="notif-content">
+                            <span class="notif-text">${notifText}</span>
+                            <span class="notif-time">${timeAgo(notif.created_at)}</span>
+                        </div>
+                        ${thumbnailHtml ? `<div class="notif-thumbnail">${thumbnailHtml}</div>` : ''}
+                        <button class="notif-options" onclick="event.stopPropagation()">⋮</button>
+                    </div>
+                `;
+
+                if (notif.type === 'new_video' || notif.type === 'upload') {
+                    subList.innerHTML += itemHtml;
+                    subCount++;
+                } else {
+                    activityList.innerHTML += itemHtml;
+                    activityCount++;
+                }
+            });
+
+            if (activityCount === 0) activityList.innerHTML = '<div style="padding: 10px 20px; color: #aaa; font-size: 13px;">No recent activity</div>';
+            if (subCount === 0) subList.innerHTML = '<div style="padding: 10px 20px; color: #aaa; font-size: 13px;">No recent uploads</div>';
+
+            const dot = document.getElementById('notification-dot');
+            if (dot) dot.style.display = hasUnread ? 'block' : 'none';
+        }
+
+        async function markAllAsRead() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return;
+            await supabaseClient.from('notifications').update({ is_read: true }).eq('user_id', session.user.id).eq('is_read', false);
+            
+            document.querySelectorAll('.notification-item.unread').forEach(item => item.classList.remove('unread'));
+            const dot = document.getElementById('notification-dot');
+            if (dot) dot.style.display = 'none';
+        }
+
+        async function clearAllNotifications() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return;
+            await supabaseClient.from('notifications').delete().eq('user_id', session.user.id);
+            loadNotifications(session.user.id);
+        }
+
+        async function handleNotificationClick(notifId, targetUrl) {
+            await supabaseClient.from('notifications').update({ is_read: true }).eq('id', notifId);
+            
+            const item = document.getElementById(`notif-item-${notifId}`);
+            if (item) item.classList.remove('unread');
+            
+            window.location.href = targetUrl;
+        }
+
+        function setupRealtimeNotifications(userId) {
+            if (realtimeSubscription) {
+                supabaseClient.removeChannel(realtimeSubscription);
+            }
+            realtimeSubscription = supabaseClient.channel('public:notifications')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+                    payload => {
+                        loadNotifications(userId);
+                    }
+                )
+                .subscribe();
+        }
+
+        async function loadSidebarSubscriptions(userId) {
+            const listEl = document.getElementById('sidebar-subscriptions-list');
+            if (!listEl) return;
+
+            const { data: subs, error: subError } = await supabaseClient
+                .from('subscriptions')
+                .select('channel_id')
+                .eq('subscriber_id', userId);
+
+            if (subError || !subs || subs.length === 0) {
+                listEl.innerHTML = '<span style="font-size: 12px; color: #aaa; padding: 5px 10px;">No subscriptions yet</span>';
+                return;
+            }
+
+            const channelIds = subs.map(s => s.channel_id);
+
+            const { data: profiles, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('id, username, handle, avatar_url')
+                .in('id', channelIds);
+
+            if (profileError || !profiles || profiles.length === 0) {
+                listEl.innerHTML = '<span style="font-size: 12px; color: #aaa; padding: 5px 10px;">No subscriptions yet</span>';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            profiles.forEach(profile => {
+                const username = profile.username || 'Channel';
+                const avatar = profile.avatar_url || '';
+
+                const item = document.createElement('div');
+                item.style.cssText = 'display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 8px 10px; border-radius: 10px; transition: background-color 0.2s ease;';
+
+                item.onmouseenter = () => {
+                    item.style.backgroundColor = document.body.classList.contains('light-mode') ? '#f2f2f2' : '#272727';
+                };
+                item.onmouseleave = () => {
+                    item.style.backgroundColor = 'transparent';
+                };
+
+                item.onclick = () => {
+                    window.location.href = `channel.html?id=${profile.id}`;
+                };
+
+                item.innerHTML = `
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background-color: #555; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        ${avatar ? `<img src="${avatar}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span style="font-size: 11px; font-weight: bold;">${username[0].toUpperCase()}</span>`}
+                    </div>
+                    <span style="font-size: 13px; color: inherit; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${username}</span>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        async function refreshCurrentUserRole(userId) {
+            currentLoggedInUserId = userId || null;
+            isAdminUser = false;
+            if (!userId) return false;
+
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (error) {
+                console.warn('Could not confirm user role:', error.message);
+                return false;
+            }
+
+            isAdminUser = profile?.role === 'admin';
+            return isAdminUser;
+        }
+
+        function canDeleteVideo(video) {
+            return Boolean(currentLoggedInUserId && video &&
+                (isAdminUser || video.user_id === currentLoggedInUserId));
+        }
+
+        function safeStoragePath(path) {
+            return String(path || '').split('/').map(part => {
+                try { return decodeURIComponent(part); } catch (_) { return part; }
+            }).join('/').replace(/^\/+/, '');
+        }
+
+        function storageObjectFromUrl(rawUrl) {
+            if (!rawUrl || typeof rawUrl !== 'string') return null;
+            if (rawUrl.startsWith('private://')) {
+                const path = safeStoragePath(rawUrl.slice('private://'.length));
+                return path ? { bucket: 'private-videos', path } : null;
+            }
+
+            try {
+                const url = new URL(rawUrl);
+                const projectOrigin = new URL(supabaseClient.supabaseUrl).origin;
+                if (url.origin !== projectOrigin) return null;
+                const match = url.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/i);
+                if (!match) return null;
+                const bucket = decodeURIComponent(match[1]);
+                const path = safeStoragePath(match[2]);
+                if (!['videos', 'private-videos'].includes(bucket) || !path) return null;
+                return { bucket, path };
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getVideoStorageObject(video) {
+            const fromUrl = storageObjectFromUrl(video?.video_url);
+            if (fromUrl) return fromUrl;
+            if (video?.storage_path) {
+                return {
+                    bucket: video.visibility === 'private' ? 'private-videos' : 'videos',
+                    path: safeStoragePath(video.storage_path)
+                };
+            }
+            return null;
+        }
+
+        async function resolveWatchLaterMediaUrl(rawUrl, video) {
+            const ref = storageObjectFromUrl(rawUrl);
+            if (!ref) return String(rawUrl || '');
+
+            if (ref.bucket === 'private-videos') {
+                const { data, error } = await supabaseClient.storage
+                    .from(ref.bucket)
+                    .createSignedUrl(ref.path, 60 * 60);
+                if (error) {
+                    console.warn('Could not create private preview URL:', error.message);
+                    return '';
+                }
+                return data?.signedUrl || '';
+            }
+            return String(rawUrl || '');
+        }
+
+        function setVideoToast(message, isError = false) {
+            const toast = document.getElementById('video-action-toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.toggle('error', isError);
+            toast.classList.add('show');
+            if (toastDismissTimer) clearTimeout(toastDismissTimer);
+            toastDismissTimer = setTimeout(() => toast.classList.remove('show'), 3600);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[char]));
+        }
+
+        async function makeWatchLaterVideoCard(video, options = {}) {
+            const { watchLaterId = null } = options;
+            const username = video.profiles?.username || 'User';
+            const avatarUrl = video.profiles?.avatar_url || '';
+            const videoCard = document.createElement('article');
+            videoCard.className = 'video-card';
+            videoCard.tabIndex = 0;
+            videoCard.setAttribute('aria-label', video.title || 'Open video');
+            videoCard.addEventListener('click', () => {
+                window.location.href = `watch.html?id=${encodeURIComponent(video.id)}`;
+            });
+            videoCard.addEventListener('keydown', event => {
+                if (event.target === videoCard && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    window.location.href = `watch.html?id=${encodeURIComponent(video.id)}`;
+                }
+            });
+
+            const thumb = document.createElement('div');
+            thumb.className = 'video-card-thumb';
+            const mediaRaw = video.thumbnail_url || video.video_url || '';
+            const mediaUrl = await resolveWatchLaterMediaUrl(mediaRaw, video);
+            if (video.thumbnail_url && mediaUrl) {
+                const img = document.createElement('img');
+                img.src = mediaUrl;
+                img.alt = 'Video thumbnail';
+                img.loading = 'lazy';
+                thumb.appendChild(img);
+            } else if (mediaUrl) {
+                const preview = document.createElement('video');
+                preview.src = mediaUrl;
+                preview.muted = true;
+                preview.preload = 'metadata';
+                preview.playsInline = true;
+                preview.setAttribute('aria-label', 'Video preview');
+                thumb.appendChild(preview);
+            } else {
+                const fallback = document.createElement('div');
+                fallback.style.cssText = 'height:100%;display:grid;place-items:center;color:#888;font-size:12px;';
+                fallback.textContent = 'Preview unavailable';
+                thumb.appendChild(fallback);
+            }
+
+            if (video.visibility === 'private') {
+                const badge = document.createElement('span');
+                badge.className = 'video-private-badge';
+                badge.textContent = 'PRIVATE';
+                thumb.appendChild(badge);
+            }
+            videoCard.appendChild(thumb);
+
+            const info = document.createElement('div');
+            info.className = 'video-card-info';
+            const avatar = document.createElement('a');
+            avatar.className = 'video-card-avatar';
+            avatar.href = `channel.html?id=${encodeURIComponent(video.user_id || '')}`;
+            avatar.addEventListener('click', event => event.stopPropagation());
+            if (avatarUrl) {
+                const image = document.createElement('img');
+                image.src = avatarUrl;
+                image.alt = `${username} avatar`;
+                avatar.appendChild(image);
+            } else {
+                avatar.textContent = (username[0] || 'U').toUpperCase();
+            }
+
+            const copy = document.createElement('div');
+            copy.className = 'video-card-copy';
+            const title = document.createElement('span');
+            title.className = 'video-card-title';
+            title.textContent = video.title || 'Untitled video';
+            copy.appendChild(title);
+            const uploader = document.createElement('a');
+            uploader.className = 'video-card-uploader';
+            uploader.href = `channel.html?id=${encodeURIComponent(video.user_id || '')}`;
+            uploader.textContent = `@${username}`;
+            uploader.addEventListener('click', event => event.stopPropagation());
+            copy.appendChild(uploader);
+            const stats = document.createElement('span');
+            stats.className = 'video-card-stats';
+            stats.textContent = `${video.views || 0} views · ${video.created_at ? timeAgo(video.created_at) : ''}`;
+            copy.appendChild(stats);
+            info.append(avatar, copy);
+            videoCard.appendChild(info);
+
+            const actions = document.createElement('div');
+            actions.className = 'video-card-actions';
+            if (watchLaterId) {
+                const removeSaved = document.createElement('button');
+                removeSaved.type = 'button';
+                removeSaved.className = 'video-card-action';
+                removeSaved.textContent = 'Remove from Watch Later';
+                removeSaved.addEventListener('click', event => {
+                    event.stopPropagation();
+                    removeFromWatchLater(watchLaterId);
+                });
+                actions.appendChild(removeSaved);
+            }
+
+            if (canDeleteVideo(video)) {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'video-card-action delete';
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', event => {
+                    event.stopPropagation();
+                    openDeleteConfirmModal(video);
+                });
+                actions.appendChild(deleteButton);
+            }
+            if (actions.childElementCount) videoCard.appendChild(actions);
+            return videoCard;
+        }
+
+        async function loadWatchLaterVideos() {
+            const grid = document.getElementById('watch-later-grid');
+            if (!grid) return;
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                currentLoggedInUserId = null;
+                isAdminUser = false;
+                grid.innerHTML = '<p style="color:#aaa;grid-column:1/-1;">Sign in to view your Watch Later list.</p>';
+                return;
+            }
+
+            currentLoggedInUserId = session.user.id;
+            await refreshCurrentUserRole(session.user.id);
+            grid.innerHTML = '<p style="color:#aaa;grid-column:1/-1;">Loading saved videos…</p>';
+
+            const { data: savedItems, error } = await supabaseClient
+                .from('watch_later')
+                .select(`
+                    id,
+                    videos:video_id (
+                        id, title, description, video_url, thumbnail_url, storage_path,
+                        views, created_at, visibility, user_id,
+                        profiles:user_id (id, username, avatar_url)
+                    )
+                `)
+                .eq('user_id', session.user.id)
+                .order('added_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching Watch Later videos:', error);
+                grid.innerHTML = '<p style="color:#ff7777;grid-column:1/-1;">Failed to load saved videos. Please refresh and try again.</p>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            const validItems = (savedItems || []).filter(item => {
+                const video = item.videos;
+                if (!video) return false;
+                if (video.visibility === 'public') return true;
+                // Private saved videos remain limited to their owner; admin permissions remain enforced by RLS.
+                return video.user_id === session.user.id;
+            });
+
+            if (!validItems.length) {
+                grid.innerHTML = '<p style="color:#aaa;grid-column:1/-1;">No saved videos yet. Save a public video to add it here.</p>';
+                return;
+            }
+
+            for (const item of validItems) {
+                const card = await makeWatchLaterVideoCard(item.videos, { watchLaterId: item.id });
+                grid.appendChild(card);
+            }
+        }
+
+        function openDeleteConfirmModal(video) {
+            if (!video || !canDeleteVideo(video)) {
+                setVideoToast('You can only delete your own videos unless you are an admin.', true);
+                return;
+            }
+            videoPendingDelete = video;
+            const description = document.getElementById('delete-confirm-description');
+            if (description) {
+                const ownerName = video.profiles?.username || 'another user';
+                description.textContent = isAdminUser && video.user_id !== currentLoggedInUserId
+                    ? `Delete “${video.title || 'Untitled video'}” uploaded by ${ownerName}? The stored video and thumbnail files will also be removed.`
+                    : `Delete “${video.title || 'Untitled video'}”? The stored video and thumbnail files will also be removed.`;
+            }
+            const modal = document.getElementById('delete-confirm-modal');
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            modal.querySelector('.delete-confirm-dialog')?.focus();
+        }
+
+        function closeDeleteConfirmModal() {
+            const modal = document.getElementById('delete-confirm-modal');
+            if (modal) {
+                modal.classList.remove('show');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            document.body.style.overflow = '';
+            videoPendingDelete = null;
+            const btn = document.getElementById('confirm-video-delete-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Delete video';
+            }
+        }
+
+        async function confirmDeleteVideo() {
+            const video = videoPendingDelete;
+            if (!video) return;
+            const button = document.getElementById('confirm-video-delete-btn');
+            button.disabled = true;
+            button.textContent = 'Deleting…';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) throw new Error('Please sign in again before deleting a video.');
+                await refreshCurrentUserRole(session.user.id);
+                if (!canDeleteVideo(video)) throw new Error('You do not have permission to delete this video.');
+
+                const objects = [];
+                const videoObject = getVideoStorageObject(video);
+                const thumbnailObject = storageObjectFromUrl(video.thumbnail_url);
+                if (videoObject) objects.push(videoObject);
+                if (thumbnailObject) objects.push(thumbnailObject);
+
+                const unique = new Map();
+                for (const object of objects) unique.set(`${object.bucket}/${object.path}`, object);
+                const bucketPaths = new Map();
+                for (const object of unique.values()) {
+                    if (!bucketPaths.has(object.bucket)) bucketPaths.set(object.bucket, []);
+                    bucketPaths.get(object.bucket).push(object.path);
+                }
+
+                for (const [bucket, paths] of bucketPaths.entries()) {
+                    const { error: storageError } = await supabaseClient.storage.from(bucket).remove(paths);
+                    if (storageError) throw new Error(`Could not delete the stored file from “${bucket}”: ${storageError.message}`);
+                }
+
+                const { data: deletedRows, error: deleteError } = await supabaseClient
+                    .from('videos')
+                    .delete()
+                    .eq('id', video.id)
+                    .select('id');
+                if (deleteError) throw deleteError;
+                if (!deletedRows || deletedRows.length === 0) {
+                    throw new Error('The video record was not deleted. Check the database DELETE policy. The Storage file may already have been removed.');
+                }
+
+                closeDeleteConfirmModal();
+                setVideoToast('Video and associated stored files deleted.');
+                await loadWatchLaterVideos();
+            } catch (error) {
+                console.error('Video deletion failed:', error);
+                closeDeleteConfirmModal();
+                setVideoToast(error?.message || 'Could not delete the video.', true);
+            }
+        }
+
+        document.addEventListener('keydown', event => {
+            const modal = document.getElementById('delete-confirm-modal');
+            if (event.key === 'Escape' && modal?.classList.contains('show')) closeDeleteConfirmModal();
+        });
+
+        async function removeFromWatchLater(watchLaterId) {
+            const { error } = await supabaseClient
+                .from('watch_later')
+                .delete()
+                .eq('id', watchLaterId);
+
+            if (error) {
+                showCustomAlert("Error", "Error removing video: " + error.message);
+                return;
+            }
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                loadWatchLaterVideos();
+            }
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const btn = document.getElementById('auth-submit-btn');
+
+            if (!email || !password) {
+                showCustomAlert("Missing Info", "Fill in both email and password, bro!");
+                return;
+            }
+
+            btn.innerText = "Processing...";
+
+            try {
+                if (isSignUpMode) {
+                    const { error } = await supabaseClient.auth.signUp({ email, password });
+                    if (error) showCustomAlert("Sign Up Error", error.message);
+                } else {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) showCustomAlert("Sign In Error", error.message);
+                }
+            } catch (err) {
+                showCustomAlert("Error", "Something went wrong: " + err.message);
+            } finally {
+                btn.innerText = isSignUpMode ? "Sign Up" : "Sign In";
+            }
+        }
+
+        async function handleModalAuth() {
+            const email = document.getElementById('modal-auth-email').value;
+            const password = document.getElementById('modal-auth-password').value;
+            const btn = document.getElementById('modal-auth-submit-btn');
+
+            if (!email || !password) {
+                showCustomAlert("Missing Info", "Fill in both email and password, bro!");
+                return;
+            }
+
+            btn.innerText = "Processing...";
+
+            try {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    showCustomAlert("Sign In Error", error.message);
+                } else {
+                    closeAuthCredentialModal();
+                }
+            } catch (err) {
+                showCustomAlert("Error", "Something went wrong: " + err.message);
+            } finally {
+                btn.innerText = "Sign In";
+            }
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        }
+
+        async function updateAuthUI(user) {
+            var outView = document.getElementById('logged-out-view');
+            var inView = document.getElementById('logged-in-view');
+
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            const username = profile?.username || user.email.split('@')[0];
+            const handle = profile?.handle || username;
+            const avatarUrl = profile?.avatar_url || '';
+
+            document.getElementById('user-display-name').innerText = username;
+            document.getElementById('user-display-handle').innerText = '@' + handle;
+
+            const dropdownAvatar = document.getElementById('dropdown-avatar-icon');
+            const navPic = document.getElementById('nav-profile-pic');
+
+            if (avatarUrl) {
+                dropdownAvatar.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+                navPic.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+            } else {
+                dropdownAvatar.innerHTML = `<span style="font-size: 14px; font-weight: bold; color: #fff;">${username[0].toUpperCase()}</span>`;
+                navPic.innerHTML = `<span style="font-size: 13px; font-weight: bold; color: #fff;">${username[0].toUpperCase()}</span>`;
+            }
+
+            outView.style.display = 'none';
+            inView.style.display = 'block';
+        }
+
+        function updateLoggedOutUI() {
+            var outView = document.getElementById('logged-out-view');
+            var inView = document.getElementById('logged-in-view');
+
+            inView.style.display = 'none';
+            outView.style.display = 'block';
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function toggleProfileMenu(event) {
+            if (event) event.stopPropagation();
+            const notifDropdown = document.getElementById('notification-dropdown');
+            if (notifDropdown) notifDropdown.classList.remove('show');
+            document.getElementById('profile-dropdown').classList.toggle('show');
+        }
+
+        function toggleNotifications(event) {
+            if (event) event.stopPropagation();
+            const profileDropdown = document.getElementById('profile-dropdown');
+            if (profileDropdown) profileDropdown.classList.remove('show');
+            document.getElementById('notification-dropdown').classList.toggle('show');
+        }
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            var heading = document.getElementById('auth-heading');
+            var btn = document.getElementById('auth-submit-btn');
+            var toggleLink = document.getElementById('auth-toggle-link');
+
+            if (isSignUpMode) {
+                heading.innerText = 'Create your account';
+                btn.innerText = 'Sign Up';
+                toggleLink.innerText = 'Sign in instead';
+            } else {
+                heading.innerText = 'Sign in to YawaFlix';
+                btn.innerText = 'Sign In';
+                toggleLink.innerText = 'Create account';
+            }
+        }
+
+        function toggleTheme() {
+            var body = document.body;
+            body.classList.toggle('light-mode');
+            var label = document.getElementById('theme-label');
+
+            if (body.classList.contains('light-mode')) {
+                localStorage.setItem('theme', 'light');
+                if (label) label.innerText = 'Light theme';
+            } else {
+                localStorage.setItem('theme', 'dark');
+                if (label) label.innerText = 'Dark theme';
+            }
+        }
+
+        window.onclick = function (event) {
+            const profileDropdown = document.getElementById('profile-dropdown');
+            const notifDropdown = document.getElementById('notification-dropdown');
+            if (profileDropdown) profileDropdown.classList.remove('show');
+            if (notifDropdown) notifDropdown.classList.remove('show');
+        }
+
+        function openUploadModal() {
+            document.getElementById('upload-modal').classList.add('show');
+        }
+
+        function closeUploadModal() {
+            document.getElementById('upload-modal').classList.remove('show');
+            resetUploadModal();
+        }
+
+        function closeAuthRequiredModal() {
+            document.getElementById('auth-required-modal').classList.remove('show');
+        }
+
+        function openAuthModalFromPrompt() {
+            closeAuthRequiredModal();
+            document.getElementById('auth-credential-modal').classList.add('show');
+        }
+
+        function closeAuthCredentialModal() {
+            document.getElementById('auth-credential-modal').classList.remove('show');
+        }
+
+        function resetUploadModal() {
+            isFileSelected = false;
+            selectedUploadThumbnailFile = null;
+            const statusText = document.getElementById('upload-status-text');
+            const iconCircle = document.getElementById('upload-icon-circle');
+            const fileInput = document.getElementById('upload-file');
+            const titleInput = document.getElementById('upload-title');
+            const descInput = document.getElementById('upload-desc');
+            const thumbFileInput = document.getElementById('upload-thumb-file');
+            const thumbPreview = document.getElementById('upload-thumb-preview');
+            const thumbText = document.getElementById('upload-thumb-text');
+            const visibilitySelect = document.getElementById('upload-visibility');
+
+            iconCircle.style.display = 'flex';
+            iconCircle.innerText = 'UPLOAD';
+            statusText.innerText = 'Drag and drop video files to upload';
+            fileInput.value = '';
+            titleInput.value = '';
+            if (descInput) descInput.value = '';
+            if (thumbFileInput) thumbFileInput.value = '';
+            if (thumbPreview) {
+                thumbPreview.style.display = 'none';
+                thumbPreview.src = '';
+            }
+            if (thumbText) thumbText.innerText = 'Click to upload thumbnail';
+            if (visibilitySelect) visibilitySelect.value = 'public';
+        }
+
+        function previewUploadThumbnail(input) {
+            const file = input.files[0];
+            if (!file) return;
+            selectedUploadThumbnailFile = file;
+            const preview = document.getElementById('upload-thumb-preview');
+            const thumbText = document.getElementById('upload-thumb-text');
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            thumbText.innerText = `Selected: ${file.name}`;
+        }
+
+        function handleUploadDropzoneClick() {
+            if (!isFileSelected) {
+                document.getElementById('upload-file').click();
+            } else {
+                closeUploadModal();
+                openCompressModal();
+            }
+        }
+
+        function openCompressModal() {
+            document.getElementById('compress-modal').classList.add('show');
+        }
+
+        function closeCompressModal() {
+            document.getElementById('compress-modal').classList.remove('show');
+            resetCompression();
+        }
+
+        function resetCompression() {
+            document.getElementById('compress-action-buttons').style.display = 'none';
+            document.getElementById('compress-progress-container').style.display = 'none';
+            document.getElementById('compress-preview-container').style.display = 'none';
+            document.getElementById('compress-icon-circle').style.display = 'flex';
+            document.getElementById('compress-status-text').style.display = 'block';
+            document.getElementById('compress-status-text').innerText = 'Drop your video here or select a file';
+            document.getElementById('compress-file-input').value = '';
+            compressedBlob = null;
+        }
+
+        async function compressVideoFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const statusText = document.getElementById('compress-status-text');
+            const progressContainer = document.getElementById('compress-progress-container');
+            const progressBar = document.getElementById('compress-progress-bar');
+            const actionButtons = document.getElementById('compress-action-buttons');
+            const previewContainer = document.getElementById('compress-preview-container');
+            const previewVideo = document.getElementById('compressed-preview-video');
+            const downloadBtn = document.getElementById('download-compressed-btn');
+            const iconCircle = document.getElementById('compress-icon-circle');
+
+            iconCircle.style.display = 'none';
+            progressContainer.style.display = 'block';
+            statusText.innerText = 'Compressing video fast... 0%';
+
+            try {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.muted = false;
+                video.playsInline = true;
+                video.playbackRate = 1.0;
+
+                await new Promise((resolve, reject) => {
+                    video.onloadedmetadata = () => {
+                        video.play().then(resolve).catch(reject);
+                    };
+                    video.onerror = reject;
+                });
+
+                const targetHeight = 480;
+                const scale = targetHeight / video.videoHeight;
+                const width = Math.round(video.videoWidth * scale);
+                const height = targetHeight;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+
+                const stream = canvas.captureStream(30);
+
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioCtx.state === 'suspended') {
+                        await audioCtx.resume();
+                    }
+                    const source = audioCtx.createMediaElementSource(video);
+                    const destination = audioCtx.createMediaStreamDestination();
+                    const gainNode = audioCtx.createGain();
+                    gainNode.gain.value = 0;
+
+                    source.connect(destination);
+                    source.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+                } catch (e) {
+                    console.warn("Audio capture skipped:", e);
+                }
+
+                const mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm; codecs=vp9,opus',
+                    videoBitsPerSecond: 400000
+                });
+
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+
+                mediaRecorder.onstop = () => {
+                    compressedBlob = new Blob(chunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(compressedBlob);
+
+                    previewVideo.src = url;
+                    downloadBtn.href = url;
+
+                    progressContainer.style.display = 'none';
+                    statusText.style.display = 'none';
+                    previewContainer.style.display = 'flex';
+                    actionButtons.style.display = 'flex';
+                };
+
+                mediaRecorder.start();
+
+                function drawFrame() {
+                    if (video.paused || video.ended) {
+                        mediaRecorder.stop();
+                        return;
+                    }
+                    if (video.duration) {
+                        const percent = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
+                        progressBar.style.width = percent + '%';
+                        statusText.innerText = `Compressing video fast... ${percent}%`;
+                    }
+                    ctx.drawImage(video, 0, 0, width, height);
+                    requestAnimationFrame(drawFrame);
+                }
+                drawFrame();
+
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = 'Compression failed, bro! Check console.';
+                iconCircle.style.display = 'flex';
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        function sendToUploadModal() {
+            if (!compressedBlob) return;
+
+            const compressedFile = new File([compressedBlob], compressedFileName, { type: 'video/webm' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(compressedFile);
+
+            const fileInput = document.getElementById('upload-file');
+            fileInput.files = dataTransfer.files;
+
+            handleUploadFileSelect(fileInput);
+
+            closeCompressModal();
+            openUploadModal();
+        }
+
+        function handleUploadFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            isFileSelected = true;
+            const statusText = document.getElementById('upload-status-text');
+            const iconCircle = document.getElementById('upload-icon-circle');
+
+            iconCircle.style.display = 'none';
+            statusText.innerText = `Selected file: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB) - Click to change`;
+        }
+
+        function openLiveModal() {
+            document.getElementById('live-modal').classList.add('show');
+        }
+
+        function closeLiveModal() {
+            document.getElementById('live-modal').classList.remove('show');
+        }
+
+        async function uploadVideo() {
+            const titleInput = document.getElementById('upload-title');
+            const descInput = document.getElementById('upload-desc');
+            const visibilitySelect = document.getElementById('upload-visibility');
+            const fileInput = document.getElementById('upload-file');
+            const submitBtn = document.getElementById('upload-submit-btn');
+
+            const title = titleInput.value.trim();
+            const description = descInput ? descInput.value.trim() : '';
+            const visibility = visibilitySelect ? visibilitySelect.value : 'public';
+            const file = fileInput.files[0];
+            if (!title || !file) {
+                showCustomAlert('Validation Error', 'Give your video a title and pick a file, bro!');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Uploading…';
+            const uploadedObjects = [];
+            let videoRecordCreated = false;
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    closeUploadModal();
+                    document.getElementById('auth-required-modal').classList.add('show');
+                    return;
+                }
+
+                const userId = session.user.id;
+                const isPrivate = visibility === 'private';
+                const bucket = isPrivate ? 'private-videos' : 'videos';
+                const extension = (file.name.split('.').pop() || 'mp4').toLowerCase();
+                const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${extension}`;
+                const videoPath = isPrivate ? `${userId}/${fileName}` : fileName;
+                let thumbnailUrl = null;
+
+                if (selectedUploadThumbnailFile) {
+                    const thumbExt = (selectedUploadThumbnailFile.name.split('.').pop() || 'jpg').toLowerCase();
+                    const thumbName = `thumb_${Date.now()}_${Math.random().toString(36).slice(2)}.${thumbExt}`;
+                    const thumbPath = isPrivate ? `${userId}/${thumbName}` : thumbName;
+                    const { error: thumbnailError } = await supabaseClient.storage
+                        .from(bucket)
+                        .upload(thumbPath, selectedUploadThumbnailFile);
+                    if (thumbnailError) throw thumbnailError;
+                    uploadedObjects.push({ bucket, path: thumbPath });
+
+                    if (isPrivate) {
+                        thumbnailUrl = `private://${thumbPath}`;
+                    } else {
+                        const { data: thumbPublic } = supabaseClient.storage.from(bucket).getPublicUrl(thumbPath);
+                        thumbnailUrl = thumbPublic.publicUrl;
+                    }
+                }
+
+                const { error: videoUploadError } = await supabaseClient.storage
+                    .from(bucket)
+                    .upload(videoPath, file);
+                if (videoUploadError) throw videoUploadError;
+                uploadedObjects.push({ bucket, path: videoPath });
+
+                let videoUrl;
+                if (isPrivate) {
+                    videoUrl = `private://${videoPath}`;
+                } else {
+                    const { data: publicVideo } = supabaseClient.storage.from(bucket).getPublicUrl(videoPath);
+                    videoUrl = publicVideo.publicUrl;
+                }
+
+                const insertData = {
+                    title,
+                    description,
+                    video_url: videoUrl,
+                    storage_path: videoPath,
+                    user_id: userId,
+                    visibility
+                };
+                if (thumbnailUrl) insertData.thumbnail_url = thumbnailUrl;
+
+                const { data: insertedVideo, error: dbError } = await supabaseClient
+                    .from('videos')
+                    .insert([insertData])
+                    .select()
+                    .single();
+                if (dbError) throw dbError;
+                videoRecordCreated = true;
+
+                // Private uploads must not notify subscribers.
+                if (!isPrivate) {
+                    const { data: subscribers, error: subscriberError } = await supabaseClient
+                        .from('subscriptions')
+                        .select('subscriber_id')
+                        .eq('channel_id', userId);
+
+                    if (subscriberError) {
+                        console.warn('Could not load subscribers for notification:', subscriberError.message);
+                    } else if (subscribers?.length) {
+                        const notifications = subscribers.map(subscriber => ({
+                            user_id: subscriber.subscriber_id,
+                            actor_id: userId,
+                            type: 'upload',
+                            video_id: insertedVideo.id
+                        }));
+                        const { error: notificationError } = await supabaseClient
+                            .from('notifications')
+                            .insert(notifications);
+                        if (notificationError) console.warn('Video uploaded, but notifications failed:', notificationError.message);
+                    }
+                }
+
+                closeUploadModal();
+                window.location.reload();
+            } catch (error) {
+                if (!videoRecordCreated && uploadedObjects.length) {
+                    const byBucket = new Map();
+                    uploadedObjects.forEach(object => {
+                        if (!byBucket.has(object.bucket)) byBucket.set(object.bucket, []);
+                        byBucket.get(object.bucket).push(object.path);
+                    });
+                    for (const [bucket, paths] of byBucket.entries()) {
+                        const { error: cleanupError } = await supabaseClient.storage.from(bucket).remove(paths);
+                        if (cleanupError) console.warn('Upload cleanup failed:', cleanupError.message);
+                    }
+                }
+                showCustomAlert('Upload Failed', error?.message || 'An unexpected upload error occurred.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Publish';
+            }
+        }
+
+        function timeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            let interval = seconds / 31536000;
+            if (interval > 1) {
+                const years = Math.floor(interval);
+                return years === 1 ? "1 year ago" : years + " years ago";
+            }
+            interval = seconds / 2592000;
+            if (interval > 1) {
+                const months = Math.floor(interval);
+                return months === 1 ? "1 month ago" : months + " months ago";
+            }
+            interval = seconds / 86400;
+            if (interval > 1) {
+                const days = Math.floor(interval);
+                return days === 1 ? "1 day ago" : days + " days ago";
+            }
+            interval = seconds / 3600;
+            if (interval > 1) {
+                const hours = Math.floor(interval);
+                return hours === 1 ? "1 hour ago" : hours + " hours ago";
+            }
+            interval = seconds / 60;
+            if (interval > 1) {
+                const mins = Math.floor(interval);
+                return mins === 1 ? "1 minute ago" : mins + " minutes ago";
+            }
+            return seconds < 10 ? "Just now" : Math.floor(seconds) + " seconds ago";
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liked Videos - YawaFlix</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #0f0f0f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #0f0f0f;
+            border-bottom: 1px solid #272727;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .left-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff0000;
+            text-decoration: none;
+        }
+
+        .container {
+            padding: 24px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .video-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .video-card {
+            display: flex;
+            gap: 16px;
+            cursor: pointer;
+            background-color: #1f1f1f;
+            padding: 12px;
+            border-radius: 12px;
+            transition: background-color 0.2s ease;
+        }
+
+        .video-card:hover {
+            background-color: #2a2a2a;
+        }
+
+        .video-thumb {
+            width: 200px;
+            aspect-ratio: 16/9;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .video-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .video-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .video-uploader,
+        .video-meta {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="left-nav">
+            <a href="index.html" class="logo">YawaFlix</a>
+        </div>
+        <div>
+            <button class="icon-btn" onclick="window.location.href='index.html'">Home</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Liked Videos</h1>
+        <div class="video-list" id="liked-videos-list">
+            <p style="color: #aaa;">Loading liked videos...</p>
+        </div>
+    </div>
+
+    <script>
+
+        // Check saved theme preference on page load
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+            const label = document.getElementById('theme-label');
+            if (label) label.innerText = 'Light theme';
+        }
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                document.getElementById('liked-videos-list').innerHTML = '<p style="color: #ff4444;">Sign in to view your liked videos, bro!</p>';
+                return;
+            }
+
+            const userId = session.user.id;
+            console.log("Current Logged-in User ID:", userId);
+
+            // Fetch liked entries
+            const { data: likedEntries, error } = await supabaseClient
+                .from('liked_videos')
+                .select('video_id')
+                .eq('user_id', userId);
+
+            console.log("Liked Entries from DB:", likedEntries, "Error:", error);
+
+            if (error) {
+                document.getElementById('liked-videos-list').innerHTML = `<p style="color: #ff4444;">Error: ${error.message}</p>`;
+                return;
+            }
+
+            const container = document.getElementById('liked-videos-list');
+            if (!likedEntries || likedEntries.length === 0) {
+                container.innerHTML = '<p style="color: #777;">No liked videos yet, bro!</p>';
+                return;
+            }
+
+            const videoIds = likedEntries.map(item => item.video_id);
+            console.log("Video IDs to fetch:", videoIds);
+
+            // Fetch actual video details
+            const { data: videos, error: videoError } = await supabaseClient
+                .from('videos')
+                .select(`
+                    *,
+                    profiles:user_id (username)
+                `)
+                .in('id', videoIds);
+
+            console.log("Fetched Videos Data:", videos, "Video Error:", videoError);
+
+            if (videoError) {
+                container.innerHTML = `<p style="color: #ff4444;">Video Error: ${videoError.message}</p>`;
+                return;
+            }
+
+            if (!videos || videos.length === 0) {
+                container.innerHTML = '<p style="color: #777;">No matching videos found in database.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            videos.forEach(video => {
+                const uploader = video.profiles?.username || 'Syan';
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.onclick = () => { window.location.href = `watch.html?id=${video.id}`; };
+
+                card.innerHTML = `
+                    <div class="video-thumb">
+                        <video src="${video.video_url}" preload="metadata"></video>
+                    </div>
+                    <div class="video-info">
+                        <span class="video-title">${video.title}</span>
+                        <span class="video-uploader">@${uploader}</span>
+                        <span style="font-size: 12px; color: #aaa;">${video.views || 0} views • ${timeAgo(video.created_at)}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        });
+    </script>
+</body>
+
+</html>
