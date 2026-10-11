@@ -51,7 +51,7 @@ For details, see the [official Supabase Storage file limits documentation](https
 1. Clone the repository:
 
    ```bash
-   git clone YOUR_GITHUB_REPOSITORY_URL
+   git clone https://github.com/SeanCruz874/YawaFlix.git
    cd YawaFlix
    ```
 
@@ -95,7 +95,7 @@ Before submitting the repository, verify:
 - Video creation, reading, updating, and deletion work where implemented.
 - Delete confirmation appears before content is removed.
 - Public and private video permissions work as expected.
-- Uploads respect the configured file-size limit; compress videos to under 50 MB when using the Supabase Free plan.
+- Uploads respect the configured file-size limit; compress videos to under 50 MB when using the Supabase Free pl an.
 - The setup instructions work from a clean environment.
 
 ## Security Notes
