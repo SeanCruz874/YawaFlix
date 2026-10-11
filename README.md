@@ -72,12 +72,12 @@ For details, see the [official Supabase Storage file limits documentation](https
 Create dedicated demonstration accounts in the demonstration Supabase project and confirm their roles and permissions before submission. Do not use personal or production credentials.
 
 - **Administrator**
-  - Email: `REPLACE_WITH_TEST_ADMIN_EMAIL`
-  - Password: `REPLACE_WITH_TEST_ONLY_PASSWORD`
+  - Email: `admin123@gmail.com`
+  - Password: `admin123`
 
 - **Regular user**
-  - Email: `REPLACE_WITH_TEST_USER_EMAIL`
-  - Password: `REPLACE_WITH_TEST_ONLY_PASSWORD`
+  - Email: `user123@gmail.com`
+  - Password: `user123`
 
 Replace these placeholders with working, dedicated demo account credentials before submission, and ensure the accounts contain no personal or sensitive data.
 
