@@ -152,7 +152,7 @@
         window.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
-                document.getElementById('liked-videos-list').innerHTML = '<p style="color: #ff4444;">Sign in to view your liked videos, bro!</p>';
+                document.getElementById('liked-videos-list').innerHTML = '<p style="color: #ff4444;">Sign in to view your liked videos</p>';
                 return;
             }
 
@@ -174,7 +174,7 @@
 
             const container = document.getElementById('liked-videos-list');
             if (!likedEntries || likedEntries.length === 0) {
-                container.innerHTML = '<p style="color: #777;">No liked videos yet, bro!</p>';
+                container.innerHTML = '<p style="color: #777;">No liked videos yet</p>';
                 return;
             }
 

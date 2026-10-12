@@ -1552,7 +1552,11 @@
                         <p class="auth-title" id="auth-heading">Sign in to YawaFlix</p>
                         <p class="auth-desc">Sign in to like videos, comment, and subscribe.</p>
                         <input type="email" id="auth-email" class="auth-input" placeholder="Email">
+                        <!-- Re-added missing password field right here -->
                         <input type="password" id="auth-password" class="auth-input" placeholder="Password">
+                        <!-- Forgot password link -->
+                        <div class="auth-toggle-text" onclick="openForgotPasswordModal()" style="margin-top: 8px; color: #aaa;">Forgot password?</div>
+                        
                         <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
                         <div class="auth-toggle-text" id="auth-toggle-link" onclick="toggleAuthMode()">Create account
                         </div>
@@ -1697,7 +1701,7 @@
     <div id="auth-required-modal" class="custom-modal-overlay">
         <div class="custom-modal-content" onclick="event.stopPropagation()">
             <p class="custom-modal-title">Sign in required</p>
-            <p class="custom-modal-desc">You need to be signed in to upload videos, bro!</p>
+            <p class="custom-modal-desc">You need to be signed in to upload videos</p>
             <div class="custom-modal-actions">
                 <button class="btn btn-secondary" onclick="closeAuthRequiredModal()">Cancel</button>
                 <button class="btn" onclick="openAuthModalFromPrompt()">Sign In</button>
@@ -1717,7 +1721,39 @@
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="email" id="modal-auth-email" class="auth-input" placeholder="Email">
                 <input type="password" id="modal-auth-password" class="auth-input" placeholder="Password">
+                <!-- Forgot password link -->
+                <div class="auth-toggle-text" onclick="openForgotPasswordModal()" style="margin-top: 8px; color: #aaa;">Forgot password?</div>
                 <button class="auth-btn" id="modal-auth-submit-btn" onclick="handleModalAuth()">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Email Modal -->
+    <div id="forgot-password-modal" class="custom-modal-overlay">
+        <div class="custom-modal-content" style="width: 360px;">
+            <div class="modal-header" style="margin-bottom: 0;">
+                <span style="font-size: 16px;">Reset Password</span>
+                <button class="close-btn" onclick="closeForgotPasswordModal()">X</button>
+            </div>
+            <p class="custom-modal-desc" style="font-size: 12px;">Enter your email and we'll send you a reset link.</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="email" id="forgot-password-email" class="auth-input" placeholder="Email">
+                <button class="auth-btn" id="forgot-password-submit-btn" onclick="sendPasswordReset()">Send Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Password Modal -->
+    <div id="update-password-modal" class="custom-modal-overlay">
+        <div class="custom-modal-content" style="width: 360px;">
+            <div class="modal-header" style="margin-bottom: 0;">
+                <span style="font-size: 16px;">Create New Password</span>
+                <button class="close-btn" onclick="closeUpdatePasswordModal()">X</button>
+            </div>
+            <p class="custom-modal-desc" style="font-size: 12px;">Type your new password below.</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="password" id="new-password-input" class="auth-input" placeholder="New Password">
+                <button class="auth-btn" id="update-password-submit-btn" onclick="updatePassword()">Save Password</button>
             </div>
         </div>
     </div>
@@ -1992,9 +2028,19 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
+            // New recovery URL check
+            if (window.location.search.includes('reset=true') || window.location.hash.includes('type=recovery')) {
+                document.getElementById('update-password-modal').classList.add('show');
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+
             const { data: { session } } = await supabaseClient.auth.getSession();
 
             supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    document.getElementById('update-password-modal').classList.add('show');
+                }
+
                 if (session) {
                     updateAuthUI(session.user);
                     loadSidebarSubscriptions(session.user.id);
@@ -2005,7 +2051,7 @@
                     currentUserIsAdmin = false;
                     updateLoggedOutUI();
                     document.getElementById('sidebar-subscriptions-list').innerHTML = '<span style="font-size: 12px; color: #aaa; padding: 5px 10px;">Sign in to see subscriptions</span>';
-                    if (realtimeSubscription) supabaseClient.removeChannel(realtimeSubscription);
+                    if (window.realtimeSubscription) supabaseClient.removeChannel(window.realtimeSubscription);
                     loadPublicVideos();
                 }
             });
@@ -2124,10 +2170,10 @@
         }
 
         function setupRealtimeNotifications(userId) {
-            if (realtimeSubscription) {
-                supabaseClient.removeChannel(realtimeSubscription);
+            if (window.realtimeSubscription) {
+                supabaseClient.removeChannel(window.realtimeSubscription);
             }
-            realtimeSubscription = supabaseClient.channel('public:notifications')
+            window.realtimeSubscription = supabaseClient.channel('notifications-' + Date.now())
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
@@ -2356,7 +2402,7 @@
             if (loadedWatchTogetherVideos.length === 0) {
                 grid.innerHTML = currentUserIsAdmin
                     ? '<p style="color: #aaa; grid-column: 1/-1;">No videos available right now.</p>'
-                    : '<p style="color: #aaa; grid-column: 1/-1;">No public videos available right now, bro!</p>';
+                    : '<p style="color: #aaa; grid-column: 1/-1;">No public videos available right now</p>';
                 return;
             }
 
@@ -2568,7 +2614,7 @@
             const btn = document.getElementById('auth-submit-btn');
 
             if (!email || !password) {
-                alert("Fill in both email and password, bro!");
+                alert("Fill in both email and password");
                 return;
             }
 
@@ -2595,7 +2641,7 @@
             const btn = document.getElementById('modal-auth-submit-btn');
 
             if (!email || !password) {
-                alert("Fill in both email and password, bro!");
+                alert("Fill in both email and password");
                 return;
             }
 
@@ -2911,7 +2957,7 @@
 
             } catch (err) {
                 console.error(err);
-                statusText.innerText = 'Compression failed, bro! Check console.';
+                statusText.innerText = 'Compression failed. Check console.';
                 iconCircle.style.display = 'flex';
                 progressContainer.style.display = 'none';
             }
@@ -3150,6 +3196,69 @@
                 const scoreB = (b.views * 1) + (b.likes * 5);
                 return scoreB - scoreA;
             });
+        }
+        
+        // --- Forgot Password Logic ---
+        function openForgotPasswordModal() {
+            document.getElementById('forgot-password-modal').classList.add('show');
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgot-password-modal').classList.remove('show');
+        }
+
+        async function sendPasswordReset() {
+            const email = document.getElementById('forgot-password-email').value;
+            const btn = document.getElementById('forgot-password-submit-btn');
+
+            if (!email) {
+                alert("Bro, drop your email first!");
+                return;
+            }
+
+            btn.innerText = "Sending...";
+            try {
+                const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + window.location.pathname + '?reset=true',
+                });
+                
+                if (error) throw error;
+                
+                alert("Reset link sent! Check your email.");
+                closeForgotPasswordModal();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.innerText = "Send Link";
+            }
+        }
+
+        function closeUpdatePasswordModal() {
+            document.getElementById('update-password-modal').classList.remove('show');
+        }
+
+        async function updatePassword() {
+            const newPassword = document.getElementById('new-password-input').value;
+            const btn = document.getElementById('update-password-submit-btn');
+
+            if (!newPassword) {
+                alert("Enter a new password first.");
+                return;
+            }
+
+            btn.innerText = "Updating...";
+            try {
+                const { data, error } = await supabaseClient.auth.updateUser({ password: newPassword });
+                
+                if (error) throw error;
+                
+                alert("Password updated! You can now use your new password.");
+                closeUpdatePasswordModal();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.innerText = "Save Password";
+            }
         }
     </script>
 </body>

@@ -1541,7 +1541,7 @@
     <div id="auth-required-modal" class="custom-modal-overlay">
         <div class="custom-modal-content">
             <p class="custom-modal-title">Sign in required</p>
-            <p class="custom-modal-desc">You need to be signed in to upload videos, bro!</p>
+            <p class="custom-modal-desc">You need to be signed in to upload videos</p>
             <div class="custom-modal-actions">
                 <button class="btn btn-secondary" onclick="closeAuthRequiredModal()">Cancel</button>
                 <button class="btn" onclick="openAuthModalFromPrompt()">Sign In</button>
@@ -2302,7 +2302,7 @@
             const btn = document.getElementById('auth-submit-btn');
 
             if (!email || !password) {
-                showCustomAlert("Missing Info", "Fill in both email and password, bro!");
+                showCustomAlert("Missing Info", "Fill in both email and password");
                 return;
             }
 
@@ -2333,7 +2333,7 @@
             const btn = document.getElementById('modal-auth-submit-btn');
 
             if (!email || !password) {
-                showCustomAlert("Missing Info", "Fill in both email and password, bro!");
+                showCustomAlert("Missing Info", "Fill in both email and password");
                 return;
             }
 
@@ -2662,7 +2662,7 @@
 
             } catch (err) {
                 console.error(err);
-                statusText.innerText = 'Compression failed, bro! Check console.';
+                statusText.innerText = 'Compression failed. Check console.';
                 iconCircle.style.display = 'flex';
                 progressContainer.style.display = 'none';
             }
@@ -2717,7 +2717,7 @@
             const file = fileInput.files[0];
 
             if (!title || !file) {
-                showCustomAlert("Validation Error", "Give your video a title and pick a file, bro!");
+                showCustomAlert("Validation Error", "Give your video a title and pick a file");
                 return;
             }
 
